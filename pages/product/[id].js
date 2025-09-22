@@ -1,5 +1,6 @@
 import products from "../../data/products";
 import { useCart } from "../../context/CartContext";
+import toast from "react-hot-toast";
 
 // Tell Next.js which product pages to pre-render
 export async function getStaticPaths() {
@@ -57,7 +58,10 @@ export default function ProductPage({ product }) {
           {/* Add to Cart button */}
           <button
             className="mt-6 bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
-            onClick={() => addToCart(product)}
+           nClick={() => {
+    addToCart(product);
+    toast.success(`${product.name} added to cart!`);
+  }}
           >
             Add to Cart
           </button>
