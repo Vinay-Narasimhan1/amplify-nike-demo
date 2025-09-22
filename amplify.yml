@@ -4,7 +4,6 @@ frontend:
     preBuild:
       commands:
         - npm install
-        - npx tailwindcss init -p
     build:
       commands:
         - npm run build
