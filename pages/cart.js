@@ -45,7 +45,12 @@ export default function Cart() {
                 >
                   Clear Cart
                 </button>
-                <button className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
+                <button
+  className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+  onClick={() => {
+    alert("Checkout flow not implemented yet. This is where Stripe/AWS integration will go.");
+  }}
+>
                   Checkout
                 </button>
               </div>
