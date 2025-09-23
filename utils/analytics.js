@@ -1,7 +1,7 @@
 // utils/analytics.js
 // Sends analytics events to API Gateway → Lambda → S3
 
-const API_URL = "https://pki11dvzfd.execute-api.us-east-2.amazonaws.com/prod/events";
+const API_URL = "https://pki11dvzfd.execute-api.us-east-2.amazonaws.com/prod";
 
 /**
  * Send an analytics event
