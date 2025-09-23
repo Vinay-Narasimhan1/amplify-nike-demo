@@ -1,9 +1,21 @@
 // utils/analytics.js
+// Send custom events to Amazon Pinpoint
+
 import { PinpointClient, PutEventsCommand } from "@aws-sdk/client-pinpoint";
 
-const client = new PinpointClient({ region: "us-east-1" }); // update if needed
-const appId = process.env.NEXT_PUBLIC_PINPOINT_APP_ID;
+// Initialize client
+const client = new PinpointClient({
+  region: process.env.NEXT_PUBLIC_AWS_REGION, // e.g. "us-east-1"
+});
 
+const appId = process.env.NEXT_PUBLIC_PINPOINT_APP_ID; // set in Amplify env vars
+
+/**
+ * Track an analytics event
+ * @param {string} userId - Unique identifier for user (use Cognito userId later, "anonymous" for now)
+ * @param {string} eventName - Event type, e.g. "AddToCart"
+ * @param {object} attributes - Extra event details, e.g. { product: "Air Runner Pro", qty: 2 }
+ */
 export async function trackEvent(userId, eventName, attributes = {}) {
   try {
     const params = {
@@ -11,7 +23,7 @@ export async function trackEvent(userId, eventName, attributes = {}) {
       EventsRequest: {
         BatchItem: {
           [userId || "anonymous"]: {
-            Endpoint: { ChannelType: "EMAIL" }, // basic endpoint placeholder
+            Endpoint: { ChannelType: "EMAIL" }, // Minimal endpoint definition
             Events: {
               [`${Date.now()}`]: {
                 EventType: eventName,
@@ -26,8 +38,10 @@ export async function trackEvent(userId, eventName, attributes = {}) {
 
     const command = new PutEventsCommand(params);
     await client.send(command);
-    console.log("Event sent to Pinpoint:", eventName, attributes);
+
+    console.log("✅ Pinpoint Event Sent:", eventName, attributes);
   } catch (err) {
-    console.error("Pinpoint error:", err);
+    console.error("❌ Pinpoint Error:", err);
   }
 }
+
