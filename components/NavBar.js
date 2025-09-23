@@ -12,7 +12,7 @@ export default function NavBar() {
         MyStore
       </Link>
 
-      {/* Middle: Links */}
+      {/* Middle: Navigation links */}
       <div className="space-x-6 text-sm font-medium">
         <Link href="/" className="hover:text-gray-600">Home</Link>
         <Link href="/shop" className="hover:text-gray-600">Shop</Link>
@@ -28,7 +28,11 @@ export default function NavBar() {
           stroke="currentColor"
           className="w-6 h-6"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.5l1.5 9h13.5l1.5-9h1.5M6.75 21a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm10.5 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.25 3h1.5l1.5 9h13.5l1.5-9h1.5M6.75 21a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm10.5 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+          />
         </svg>
         {itemCount > 0 && (
           <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2">
@@ -39,3 +43,4 @@ export default function NavBar() {
     </nav>
   );
 }
+
