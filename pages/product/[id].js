@@ -2,21 +2,21 @@ import products from "../../data/products";
 import { useCart } from "../../context/CartContext";
 import toast from "react-hot-toast";
 
-// Tell Next.js which product pages to pre-render
+// Tell Next.js which product pages to build
 export async function getStaticPaths() {
   return {
     paths: products.map((p) => ({ params: { id: String(p.id) } })),
-    fallback: false, // no fallback → only these paths are built
+    fallback: false,
   };
 }
 
-// Fetch product data for each page
+// Provide product data for each page
 export async function getStaticProps({ params }) {
   const product = products.find((p) => String(p.id) === params.id) || null;
   return { props: { product } };
 }
 
-// The product detail page
+// Product detail page
 export default function ProductPage({ product }) {
   const { addToCart } = useCart();
 
@@ -27,7 +27,7 @@ export default function ProductPage({ product }) {
   return (
     <main className="max-w-5xl mx-auto px-6 py-12">
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Left side: product image(s) */}
+        {/* Left side: main + alt images */}
         <div>
           <img
             src={product.image}
@@ -48,7 +48,7 @@ export default function ProductPage({ product }) {
           )}
         </div>
 
-        {/* Right side: product details */}
+        {/* Right side: product info */}
         <div>
           <h1 className="text-3xl font-bold">{product.name}</h1>
           <p className="text-gray-600 mt-2">{product.category}</p>
@@ -58,10 +58,10 @@ export default function ProductPage({ product }) {
           {/* Add to Cart button */}
           <button
             className="mt-6 bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
-           nClick={() => {
-    addToCart(product);
-    toast.success(`${product.name} added to cart!`);
-  }}
+            onClick={() => {
+              addToCart(product);
+              toast.success(`${product.name} added to cart!`);
+            }}
           >
             Add to Cart
           </button>
