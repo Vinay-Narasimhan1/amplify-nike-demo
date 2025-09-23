@@ -2,6 +2,7 @@ import { useState } from "react";
 import products from "../data/products";
 import NavBar from "../components/NavBar";
 import Link from "next/link";
+import { trackEvent } from "../utils/analytics"; // ✅ new import
 
 export default function ShopPage() {
   const [category, setCategory] = useState("All");
@@ -29,7 +30,10 @@ export default function ShopPage() {
             type="text"
             placeholder="Search products..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              trackEvent("anonymous", "Search", { query: e.target.value }); // ✅ track search
+            }}
             className="w-full md:w-1/3 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-black"
           />
 
@@ -38,7 +42,10 @@ export default function ShopPage() {
             {categories.map((c) => (
               <button
                 key={c}
-                onClick={() => setCategory(c)}
+                onClick={() => {
+                  setCategory(c);
+                  trackEvent("anonymous", "CategorySelected", { category: c }); // ✅ track category
+                }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                   category === c
                     ? "bg-black text-white"
@@ -60,6 +67,9 @@ export default function ShopPage() {
               <Link
                 key={p.id}
                 href={`/product/${p.id}`}
+                onClick={() =>
+                  trackEvent("anonymous", "ProductClick", { product: p.name }) // ✅ track click
+                }
                 className="group relative block border rounded-lg overflow-hidden hover:shadow-xl transition"
               >
                 {/* Product image */}
@@ -92,5 +102,6 @@ export default function ShopPage() {
     </>
   );
 }
+
 
 
