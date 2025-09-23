@@ -1,47 +1,33 @@
 // utils/analytics.js
-// Send custom events to Amazon Pinpoint
+// Sends analytics events to API Gateway → Lambda → S3
 
-import { PinpointClient, PutEventsCommand } from "@aws-sdk/client-pinpoint";
-
-// Initialize client
-const client = new PinpointClient({
-  region: process.env.NEXT_PUBLIC_AWS_REGION, // e.g. "us-east-1"
-});
-
-const appId = process.env.NEXT_PUBLIC_PINPOINT_APP_ID; // set in Amplify env vars
+const API_URL = "https://pki11dvzfd.execute-api.us-east-2.amazonaws.com/prod/events";
 
 /**
- * Track an analytics event
- * @param {string} userId - Unique identifier for user (use Cognito userId later, "anonymous" for now)
- * @param {string} eventName - Event type, e.g. "AddToCart"
- * @param {object} attributes - Extra event details, e.g. { product: "Air Runner Pro", qty: 2 }
+ * Send an analytics event
+ * @param {string} eventName - e.g., "ProductClick", "AddToCart", "CheckoutStarted"
+ * @param {object} attributes - custom metadata, e.g., { product: "Air Runner Pro" }
  */
-export async function trackEvent(userId, eventName, attributes = {}) {
+export async function trackEvent(eventName, attributes = {}) {
   try {
-    const params = {
-      ApplicationId: appId,
-      EventsRequest: {
-        BatchItem: {
-          [userId || "anonymous"]: {
-            Endpoint: { ChannelType: "EMAIL" }, // Minimal endpoint definition
-            Events: {
-              [`${Date.now()}`]: {
-                EventType: eventName,
-                Timestamp: new Date().toISOString(),
-                Attributes: attributes,
-              },
-            },
-          },
-        },
-      },
-    };
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventName,
+        timestamp: new Date().toISOString(),
+        attributes,
+      }),
+    });
 
-    const command = new PutEventsCommand(params);
-    await client.send(command);
-
-    console.log("✅ Pinpoint Event Sent:", eventName, attributes);
+    if (!res.ok) {
+      console.error("Analytics failed:", res.status, res.statusText);
+    } else {
+      console.log("✅ Analytics event sent:", eventName, attributes);
+    }
   } catch (err) {
-    console.error("❌ Pinpoint Error:", err);
+    console.error("Analytics error:", err);
   }
 }
+
 
