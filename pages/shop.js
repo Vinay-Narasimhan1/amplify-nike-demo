@@ -32,7 +32,7 @@ export default function ShopPage() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              trackEvent("Search", { query: e.target.value }); // ✅ fixed
+              trackEvent("Search", { query: e.target.value }); // ✅ track search
             }}
             className="w-full md:w-1/3 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-black"
           />
@@ -44,7 +44,7 @@ export default function ShopPage() {
                 key={c}
                 onClick={() => {
                   setCategory(c);
-                  trackEvent("CategorySelected", { category: c }); // ✅ fixed
+                  trackEvent("CategorySelected", { category: c }); // ✅ track category
                 }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                   category === c
@@ -72,7 +72,7 @@ export default function ShopPage() {
                     id: p.id,
                     name: p.name,
                     price: p.price,
-                  }) // ✅ richer event
+                  }) // ✅ track product click
                 }
                 className="group relative block border rounded-lg overflow-hidden hover:shadow-xl transition"
               >
