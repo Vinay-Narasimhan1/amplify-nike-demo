@@ -2,7 +2,7 @@ import { useState } from "react";
 import products from "../data/products";
 import NavBar from "../components/NavBar";
 import Link from "next/link";
-import { trackEvent } from "../utils/analytics"; // ✅ new import
+import { trackEvent } from "../utils/analytics"; // ✅ analytics import
 
 export default function ShopPage() {
   const [category, setCategory] = useState("All");
@@ -32,7 +32,7 @@ export default function ShopPage() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              trackEvent("anonymous", "Search", { query: e.target.value }); // ✅ track search
+              trackEvent("Search", { query: e.target.value }); // ✅ fixed
             }}
             className="w-full md:w-1/3 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-black"
           />
@@ -44,7 +44,7 @@ export default function ShopPage() {
                 key={c}
                 onClick={() => {
                   setCategory(c);
-                  trackEvent("anonymous", "CategorySelected", { category: c }); // ✅ track category
+                  trackEvent("CategorySelected", { category: c }); // ✅ fixed
                 }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                   category === c
@@ -68,7 +68,11 @@ export default function ShopPage() {
                 key={p.id}
                 href={`/product/${p.id}`}
                 onClick={() =>
-                  trackEvent("anonymous", "ProductClick", { product: p.name }) // ✅ track click
+                  trackEvent("ProductClick", {
+                    id: p.id,
+                    name: p.name,
+                    price: p.price,
+                  }) // ✅ richer event
                 }
                 className="group relative block border rounded-lg overflow-hidden hover:shadow-xl transition"
               >
@@ -102,6 +106,8 @@ export default function ShopPage() {
     </>
   );
 }
+
+
 
 
 
