@@ -4,8 +4,8 @@ export default function HeroBanner() {
   return (
     <section className="relative bg-black text-white h-[500px] flex items-center justify-center">
       <img
-        src="https://via.placeholder.com/1600x500?text=Hero+Banner"
-        alt="Hero"
+        src="https://images.unsplash.com/photo-1600181952124-91f5b9f6aa0d?auto=format&w=1600&q=80"
+        alt="Hero Banner"
         className="absolute inset-0 w-full h-full object-cover opacity-70"
       />
       <div className="relative z-10 text-center px-4">
