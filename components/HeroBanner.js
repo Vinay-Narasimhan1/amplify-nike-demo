@@ -4,7 +4,7 @@ export default function HeroBanner() {
   return (
     <section className="relative bg-black text-white h-[500px] flex items-center justify-center">
       <img
-        src="https://images.unsplash.com/photo-1600181952124-91f5b9f6aa0d?auto=format&w=1600&q=80"
+        src="/images/hero.jpg"
         alt="Hero Banner"
         className="absolute inset-0 w-full h-full object-cover opacity-70"
       />
