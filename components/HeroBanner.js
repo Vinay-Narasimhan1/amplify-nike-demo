@@ -10,10 +10,10 @@ export default function HeroBanner() {
         className="absolute inset-0 w-full h-full object-cover opacity-70"
       />
 
-      {/* Overlay */}
+      {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/40" />
 
-      {/* Text content */}
+      {/* Text + CTA */}
       <div className="relative z-10 text-center px-4">
         <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight uppercase mb-6">
           Move With Style
