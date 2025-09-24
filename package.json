@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@heroicons/react": "^2.1.1",
     "react-hot-toast": "^2.4.1",
     "@aws-sdk/client-pinpoint": "^3.637.0",
     "autoprefixer": "^10.4.20",
