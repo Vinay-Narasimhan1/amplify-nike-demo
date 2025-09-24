@@ -1,47 +1,35 @@
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
+import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 
 export default function NavBar() {
   const { cart } = useCart();
-  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   return (
-    <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Left: Logo / Home */}
-        <div className="flex items-center space-x-6">
-          <Link href="/" className="text-2xl font-extrabold tracking-tight">
-            My Store
-          </Link>
-          <Link href="/shop" className="text-gray-700 hover:underline">
-            Shop
-          </Link>
-        </div>
+    <nav className="flex items-center justify-between px-6 py-4 shadow-sm bg-white sticky top-0 z-50">
+      {/* Logo / Brand */}
+      <Link href="/" className="text-2xl font-bold tracking-tight">
+        My Store
+      </Link>
 
-        {/* Right: Login + Cart */}
-        <div className="flex items-center space-x-6">
-          {/* Login placeholder */}
-          <Link
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              alert("Login feature coming soon!");
-            }}
-            className="text-gray-700 hover:underline"
-          >
-            Login
-          </Link>
+      {/* Nav Links */}
+      <div className="flex items-center space-x-6">
+        <Link href="/" className="hover:text-gray-600 transition">
+          Home
+        </Link>
+        <Link href="/shop" className="hover:text-gray-600 transition">
+          Shop
+        </Link>
 
-          {/* Cart */}
-          <Link href="/cart" className="relative text-gray-700 hover:underline">
-            🛒
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-3 bg-black text-white text-xs font-bold rounded-full px-2">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
+        {/* Cart Icon */}
+        <Link href="/cart" className="relative">
+          <ShoppingBagIcon className="h-6 w-6 hover:text-gray-600 transition" />
+          {cart.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+              {cart.length}
+            </span>
+          )}
+        </Link>
       </div>
     </nav>
   );
