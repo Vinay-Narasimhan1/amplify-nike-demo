@@ -1,9 +1,35 @@
 import products from "../../data/products";
 import { useCart } from "../../context/CartContext";
 import toast from "react-hot-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NavBar from "../../components/NavBar";
 import { trackEvent } from "../../utils/analytics"; // ✅ analytics import
+import Link from "next/link";
+
+// ✅ Helper to fetch recommendations
+async function fetchRecommendations(lastViewed) {
+  try {
+    const res = await fetch(
+      "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/default/getRecommendations",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lastViewed }),
+      }
+    );
+
+    if (!res.ok) {
+      console.error("Failed to fetch recommendations:", res.status);
+      return [];
+    }
+
+    const data = await res.json();
+    return data.recommendations || [];
+  } catch (err) {
+    console.error("Error fetching recommendations:", err);
+    return [];
+  }
+}
 
 export async function getStaticPaths() {
   return {
@@ -20,6 +46,13 @@ export async function getStaticProps({ params }) {
 export default function ProductPage({ product }) {
   const { addToCart } = useCart();
   const [qty, setQty] = useState(1);
+  const [recommendations, setRecommendations] = useState([]);
+
+  useEffect(() => {
+    if (product?.id) {
+      fetchRecommendations(product.id).then(setRecommendations);
+    }
+  }, [product?.id]);
 
   if (!product) {
     return <main className="p-8">Product not found.</main>;
@@ -50,7 +83,7 @@ export default function ProductPage({ product }) {
             <img
               src={product.image}
               alt={product.name}
-              className="w-full rounded-lg shadow transition-transform duration-500 hover:scale-105" // ✅ hover zoom
+              className="w-full rounded-lg shadow transition-transform duration-500 hover:scale-105"
             />
             {product.images?.length > 1 && (
               <div className="grid grid-cols-3 gap-3 mt-3">
@@ -99,9 +132,27 @@ export default function ProductPage({ product }) {
             </button>
           </div>
         </div>
+
+        {/* ✅ Recommendations Section */}
+        {recommendations.length > 0 && (
+          <section className="mt-16">
+            <h2 className="text-2xl font-bold mb-6">You may also like</h2>
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {recommendations.map((rec) => (
+                <Link
+                  key={rec.id}
+                  href={`/product/${rec.id}`}
+                  className="block border rounded-lg p-4 hover:shadow-lg transition"
+                >
+                  <h3 className="font-semibold">{rec.name}</h3>
+                  <p className="text-sm text-gray-600">{rec.category}</p>
+                  <p className="mt-2 font-bold">${rec.price}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </>
   );
 }
-
-
