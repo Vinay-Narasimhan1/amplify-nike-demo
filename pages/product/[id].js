@@ -3,10 +3,10 @@ import { useCart } from "../../context/CartContext";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import NavBar from "../../components/NavBar";
-import { trackEvent } from "../../utils/analytics"; // ✅ analytics import
+import { trackEvent } from "../../utils/analytics";
 import Link from "next/link";
 
-// ✅ Helper to fetch recommendations
+// ✅ Helper: fetch recommendations from Lambda
 async function fetchRecommendations(lastViewed) {
   try {
     const res = await fetch(
@@ -14,19 +14,19 @@ async function fetchRecommendations(lastViewed) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lastViewed }),
+        body: JSON.stringify({ sessionId: "anon-1234", lastViewed }),
       }
     );
 
     if (!res.ok) {
-      console.error("Failed to fetch recommendations:", res.status);
+      console.error("❌ Failed to fetch recommendations:", res.status);
       return [];
     }
 
     const data = await res.json();
     return data.recommendations || [];
   } catch (err) {
-    console.error("Error fetching recommendations:", err);
+    console.error("❌ Error fetching recommendations:", err);
     return [];
   }
 }
@@ -48,6 +48,7 @@ export default function ProductPage({ product }) {
   const [qty, setQty] = useState(1);
   const [recommendations, setRecommendations] = useState([]);
 
+  // ✅ Fetch recommendations when this product loads
   useEffect(() => {
     if (product?.id) {
       fetchRecommendations(product.id).then(setRecommendations);
@@ -78,7 +79,7 @@ export default function ProductPage({ product }) {
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Left side: main + alt images */}
+          {/* Left side: images */}
           <div>
             <img
               src={product.image}
@@ -123,7 +124,7 @@ export default function ProductPage({ product }) {
               </button>
             </div>
 
-            {/* Add to Cart button */}
+            {/* Add to Cart */}
             <button
               className="mt-6 bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
               onClick={handleAddToCart}
