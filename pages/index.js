@@ -1,7 +1,32 @@
 import Link from "next/link";
 import NavBar from "../components/NavBar";
+import products from "../data/products";
+
+/**
+ * We'll pick one featured product per category so
+ * the image, name, and /product/[id] link always match your data.
+ * If your product objects already have the right `image`, we'll use it.
+ * Otherwise we fall back to the static /public/images/* files.
+ */
+const FEATURED_CATEGORIES = [
+  { category: "Running",   fallbackImage: "/images/runner.jpg" },
+  { category: "Lifestyle", fallbackImage: "/images/urban.jpg" },
+  { category: "Trail",     fallbackImage: "/images/trail.jpg" },
+];
 
 export default function HomePage() {
+  // Build featured list by looking up the first product in each category.
+  const featured = FEATURED_CATEGORIES.map(({ category, fallbackImage }) => {
+    const p = products.find((prod) => prod.category === category);
+    if (!p) return null;
+    return {
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      image: p.image || fallbackImage,
+    };
+  }).filter(Boolean);
+
   return (
     <>
       <NavBar />
@@ -27,60 +52,29 @@ export default function HomePage() {
 
       {/* Featured Products Section */}
       <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold mb-8 text-center">
-          Featured Products
-        </h2>
+        <h2 className="text-3xl font-bold mb-8 text-center">Featured Products</h2>
+
         <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Featured Product 1 */}
-          <div className="group relative border rounded-lg overflow-hidden hover:shadow-xl transition">
-            <img
-              src="/images/runner.jpg"
-              alt="Air Runner Pro"
-              className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-              <Link
-                href="/product/1"  // ✅ Goes to product ID 1
-                className="bg-white text-black px-4 py-2 rounded-full font-semibold"
-              >
-                Explore
-              </Link>
+          {featured.map((p) => (
+            <div
+              key={p.id}
+              className="group relative border rounded-lg overflow-hidden hover:shadow-xl transition"
+            >
+              <img
+                src={p.image}
+                alt={p.name}
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <Link
+                  href={`/product/${p.id}`} // ✅ always matches the real product id
+                  className="bg-white text-black px-4 py-2 rounded-full font-semibold"
+                >
+                  Explore
+                </Link>
+              </div>
             </div>
-          </div>
-
-          {/* Featured Product 2 */}
-          <div className="group relative border rounded-lg overflow-hidden hover:shadow-xl transition">
-            <img
-              src="/images/urban.jpg"
-              alt="Urban Sneakers"
-              className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-              <Link
-                href="/product/2"  // ✅ Goes to product ID 2
-                className="bg-white text-black px-4 py-2 rounded-full font-semibold"
-              >
-                Explore
-              </Link>
-            </div>
-          </div>
-
-          {/* Featured Product 3 */}
-          <div className="group relative border rounded-lg overflow-hidden hover:shadow-xl transition">
-            <img
-              src="/images/trail.jpg"
-              alt="Trail Shoes"
-              className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-              <Link
-                href="/product/3"  // ✅ Goes to product ID 3
-                className="bg-white text-black px-4 py-2 rounded-full font-semibold"
-              >
-                Explore
-              </Link>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
     </>
