@@ -6,11 +6,11 @@ import NavBar from "../../components/NavBar";
 import { trackEvent } from "../../utils/analytics";
 import Link from "next/link";
 
-// ✅ Helper: fetch recommendations from Lambda
+// ✅ Helper: fetch recommendations from Lambda (Agent-backed)
 async function fetchRecommendations(lastViewed) {
   try {
     const res = await fetch(
-      "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/default/getRecommendations",
+      "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/getRecommendations",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -24,7 +24,8 @@ async function fetchRecommendations(lastViewed) {
     }
 
     const data = await res.json();
-    return data.recommendations || [];
+    // 🔑 FIX: use data.response.recommendations
+    return data.response?.recommendations || [];
   } catch (err) {
     console.error("❌ Error fetching recommendations:", err);
     return [];
