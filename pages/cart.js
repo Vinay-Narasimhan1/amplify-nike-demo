@@ -1,22 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
+  const [total, setTotal] = useState(0);
 
-  // Load cart from localStorage
+  // Load cart on mount
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCart(savedCart);
+    const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    setCart(storedCart);
   }, []);
 
-  // Save cart + update last activity timestamp
+  // Save cart + update total + activity timestamp
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
     if (cart.length > 0) {
       localStorage.setItem("lastCartActivity", Date.now().toString());
     }
+
+    const newTotal = cart.reduce(
+      (acc, item) => acc + (item.finalPrice || item.price) * item.quantity,
+      0
+    );
+    setTotal(newTotal);
   }, [cart]);
 
   // Remove item
@@ -31,10 +37,6 @@ export default function Cart() {
       const res = await fetch(
         "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/abandonedCartRecovery"
       );
-      if (!res.ok) {
-        console.error("❌ Failed to fetch abandoned cart discounts:", res.status);
-        return;
-      }
       const data = await res.json();
       const discounted = data.discountedCarts || [];
 
@@ -51,7 +53,7 @@ export default function Cart() {
     }
   }
 
-  // Abandoned cart detection
+  // Abandoned cart detection (2 min for testing)
   useEffect(() => {
     const timer = setInterval(() => {
       const lastActivity = localStorage.getItem("lastCartActivity");
@@ -59,7 +61,6 @@ export default function Cart() {
         const elapsed = Date.now() - parseInt(lastActivity, 10);
 
         if (elapsed > 2 * 60 * 1000) {
-          // 2 mins for testing, later change to 24 * 60 * 60 * 1000
           console.log("⏰ Abandoned cart detected. Fetching discounts...");
           fetchDiscounts();
         }
@@ -68,36 +69,31 @@ export default function Cart() {
     return () => clearInterval(timer);
   }, []);
 
-  const total = cart.reduce(
-    (sum, item) => sum + (item.finalPrice || item.price) * item.quantity,
-    0
-  );
-
   return (
-    <div>
-      <h2>Your Cart</h2>
-      {cart.length === 0 && <p>No items in cart.</p>}
-
-      {cart.map((item) => (
-        <div key={item.productId} style={{ marginBottom: "1rem" }}>
-          <strong>{item.name}</strong> <br />
-          Qty: {item.quantity} <br />
-          Price: ${(item.finalPrice || item.price).toFixed(2)} <br />
-          {item.discountApplied && (
-            <span style={{ color: "green" }}>
-              Discount: {item.discountApplied}
-            </span>
-          )}
-          <br />
-          <button onClick={() => removeItem(item.productId)}>Remove</button>
-        </div>
-      ))}
-
-      <h3>Total: ${total.toFixed(2)}</h3>
-
-      {/* Toast container for popups */}
-      <ToastContainer position="top-right" autoClose={4000} hideProgressBar />
+    <div style={{ padding: "20px" }}>
+      <h1>Your Cart</h1>
+      {cart.length === 0 ? (
+        <p>No items in cart</p>
+      ) : (
+        <>
+          {cart.map((item, idx) => (
+            <div key={idx} style={{ marginBottom: "10px" }}>
+              <h3>{item.name}</h3>
+              <p>
+                Qty: {item.quantity} — $
+                {((item.finalPrice || item.price) * item.quantity).toFixed(2)}
+              </p>
+              {item.discountApplied && (
+                <p style={{ color: "green" }}>
+                  Discount: {item.discountApplied}
+                </p>
+              )}
+              <button onClick={() => removeItem(item.productId)}>Remove</button>
+            </div>
+          ))}
+          <h2>Total: ${total.toFixed(2)}</h2>
+        </>
+      )}
     </div>
   );
 }
-
