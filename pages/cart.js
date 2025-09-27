@@ -1,93 +1,98 @@
-import NavBar from "../components/NavBar";
 import { useCart } from "../context/CartContext";
-import { trackEvent } from "../utils/analytics";
+import NavBar from "../components/NavBar";
+import toast from "react-hot-toast";
+import { useEffect, useState } from "react";
+
+async function fetchDiscounts() {
+  try {
+    const res = await fetch(
+      "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/abandonedCartRecovery",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // no payload needed, Lambda scans S3
+      }
+    );
+    if (!res.ok) {
+      console.error("❌ Failed to fetch discounts:", res.status);
+      return [];
+    }
+    const data = await res.json();
+    return data.discountedCarts || [];
+  } catch (err) {
+    console.error("❌ Error fetching discounts:", err);
+    return [];
+  }
+}
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart } = useCart();
-  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const { cart, removeFromCart } = useCart();
+  const [discounts, setDiscounts] = useState([]);
+
+  useEffect(() => {
+    fetchDiscounts().then((dc) => {
+      setDiscounts(dc);
+
+      // Show a toast for each discount
+      dc.forEach((d) => {
+        toast.success(
+          `${d.discountApplied} applied to ${d.name}! New price: $${d.finalPrice}`
+        );
+      });
+    });
+  }, []);
+
+  // Helper to get discounted price if available
+  const getFinalPrice = (item) => {
+    const discount = discounts.find((d) => d.productId == item.id);
+    return discount ? discount.finalPrice : item.price * item.quantity;
+  };
+
+  const total = cart.reduce((sum, item) => sum + getFinalPrice(item), 0);
 
   return (
     <>
       <NavBar />
       <main className="max-w-4xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
-
+        <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
         {cart.length === 0 ? (
           <p>Your cart is empty.</p>
         ) : (
           <div className="space-y-6">
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border-b pb-4"
-              >
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-20 h-20 object-cover rounded"
-                  />
-                  <div>
-                    <h2 className="font-semibold">{item.name}</h2>
-                    <p className="text-gray-600">${item.price}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => {
-                      if (item.qty > 1) {
-                        updateQuantity(item.id, item.qty - 1);
-                        trackEvent("anonymous", "CartQuantityUpdate", {
-                          product: item.name,
-                          qty: item.qty - 1,
-                        });
-                      }
-                    }}
-                    className="px-2 py-1 border rounded"
-                  >
-                    -
-                  </button>
-                  <span>{item.qty}</span>
-                  <button
-                    onClick={() => {
-                      updateQuantity(item.id, item.qty + 1);
-                      trackEvent("anonymous", "CartQuantityUpdate", {
-                        product: item.name,
-                        qty: item.qty + 1,
-                      });
-                    }}
-                    className="px-2 py-1 border rounded"
-                  >
-                    +
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => {
-                    removeFromCart(item.id);
-                    trackEvent("anonymous", "RemoveFromCart", {
-                      product: item.name,
-                    });
-                  }}
-                  className="text-red-500 hover:underline ml-4"
+            {cart.map((item) => {
+              const discount = discounts.find((d) => d.productId == item.id);
+              return (
+                <div
+                  key={item.id}
+                  className="flex justify-between items-center border-b pb-4"
                 >
-                  Remove
-                </button>
-              </div>
-            ))}
-
-            <div className="flex justify-between items-center mt-6">
-              <p className="text-xl font-bold">Total: ${total.toFixed(2)}</p>
-              <button
-                onClick={() => {
-                  trackEvent("anonymous", "CheckoutStarted", { cart });
-                  alert("Checkout coming soon!");
-                }}
-                className="bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-              >
-                Checkout
-              </button>
+                  <div>
+                    <h2 className="text-lg font-semibold">{item.name}</h2>
+                    <p className="text-gray-500">
+                      Qty: {item.quantity}
+                      {discount && (
+                        <span className="ml-2 text-green-600 font-bold">
+                          ({discount.discountApplied})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xl font-bold">
+                      ${getFinalPrice(item).toFixed(2)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="text-red-600 hover:underline ml-4"
+                  >
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+            <div className="text-right mt-6">
+              <h2 className="text-2xl font-bold">Total: ${total.toFixed(2)}</h2>
             </div>
           </div>
         )}
@@ -95,3 +100,4 @@ export default function CartPage() {
     </>
   );
 }
+
