@@ -32,17 +32,21 @@ export default function CartPage() {
     }
   };
 
-  // Check if abandoned > 2 mins (for testing)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const lastActivity = localStorage.getItem("lastCartActivity");
-      if (lastActivity && Date.now() - lastActivity > 2 * 60 * 1000) {
+  // Check for abandoned cart (every 10s)
+useEffect(() => {
+  const timer = setInterval(() => {
+    const lastActivity = localStorage.getItem("lastCartActivity");
+    if (lastActivity) {
+      const elapsed = Date.now() - parseInt(lastActivity, 10);
+
+      if (elapsed > 2 * 60 * 1000) { // 2 mins for testing
+        console.log("⏰ Abandoned cart detected. Fetching discounts...");
         fetchDiscounts();
-        clearInterval(timer);
       }
-    }, 10000); // check every 10 sec
-    return () => clearInterval(timer);
-  }, []);
+    }
+  }, 10000); // check every 10s
+  return () => clearInterval(timer);
+}, []);
 
   const items = discountedCart.length > 0 ? discountedCart : cart;
 
