@@ -1,12 +1,12 @@
+// pages/product/[id].js
 import products from "../../data/products";
 import { useCart } from "../../context/CartContext";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import NavBar from "../../components/NavBar";
-import { trackEvent } from "../../utils/analytics";
 import Link from "next/link";
 
-// ✅ Helper: fetch recommendations from Lambda (Agent-backed)
+// Fetch recommendations (already working)
 async function fetchRecommendations(lastViewed) {
   try {
     const res = await fetch(
@@ -14,20 +14,14 @@ async function fetchRecommendations(lastViewed) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: "anon-1234", lastViewed }),
+        body: JSON.stringify({ lastViewed }),
       }
     );
 
-    if (!res.ok) {
-      console.error("❌ Failed to fetch recommendations:", res.status);
-      return [];
-    }
-
+    if (!res.ok) return [];
     const data = await res.json();
-    // 🔑 FIX: use data.response.recommendations
     return data.response?.recommendations || [];
-  } catch (err) {
-    console.error("❌ Error fetching recommendations:", err);
+  } catch {
     return [];
   }
 }
@@ -49,7 +43,6 @@ export default function ProductPage({ product }) {
   const [qty, setQty] = useState(1);
   const [recommendations, setRecommendations] = useState([]);
 
-  // ✅ Fetch recommendations when this product loads
   useEffect(() => {
     if (product?.id) {
       fetchRecommendations(product.id).then(setRecommendations);
@@ -61,16 +54,7 @@ export default function ProductPage({ product }) {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, qty);
-
-    // ✅ Analytics event
-    trackEvent("AddToCart", {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      quantity: qty,
-    });
-
+    addToCart(product, qty); // ✅ pass qty
     toast.success(`${qty} × ${product.name} added to cart!`);
   };
 
@@ -80,28 +64,14 @@ export default function ProductPage({ product }) {
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Left side: images */}
           <div>
             <img
               src={product.image}
               alt={product.name}
-              className="w-full rounded-lg shadow transition-transform duration-500 hover:scale-105"
+              className="w-full rounded-lg shadow"
             />
-            {product.images?.length > 1 && (
-              <div className="grid grid-cols-3 gap-3 mt-3">
-                {product.images.slice(1).map((src, i) => (
-                  <img
-                    key={i}
-                    src={src}
-                    alt={`${product.name} alt ${i + 1}`}
-                    className="w-full h-32 object-cover rounded hover:scale-105 transition-transform duration-300"
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* Right side: product info */}
           <div>
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <p className="text-gray-600 mt-2">{product.category}</p>
@@ -112,22 +82,21 @@ export default function ProductPage({ product }) {
             <div className="flex items-center mt-6 space-x-4">
               <button
                 onClick={() => setQty(Math.max(1, qty - 1))}
-                className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="px-3 py-2 bg-gray-200 rounded"
               >
                 -
               </button>
               <span className="text-lg font-medium">{qty}</span>
               <button
                 onClick={() => setQty(qty + 1)}
-                className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="px-3 py-2 bg-gray-200 rounded"
               >
                 +
               </button>
             </div>
 
-            {/* Add to Cart */}
             <button
-              className="mt-6 bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
+              className="mt-6 bg-black text-white px-6 py-3 rounded"
               onClick={handleAddToCart}
             >
               Add to Cart
@@ -135,7 +104,7 @@ export default function ProductPage({ product }) {
           </div>
         </div>
 
-        {/* ✅ Recommendations Section */}
+        {/* Recommendations */}
         {recommendations.length > 0 && (
           <section className="mt-16">
             <h2 className="text-2xl font-bold mb-6">You may also like</h2>
@@ -144,7 +113,7 @@ export default function ProductPage({ product }) {
                 <Link
                   key={rec.id}
                   href={`/product/${rec.id}`}
-                  className="block border rounded-lg p-4 hover:shadow-lg transition"
+                  className="block border rounded-lg p-4 hover:shadow-lg"
                 >
                   <h3 className="font-semibold">{rec.name}</h3>
                   <p className="text-sm text-gray-600">{rec.category}</p>
@@ -158,3 +127,4 @@ export default function ProductPage({ product }) {
     </>
   );
 }
+
