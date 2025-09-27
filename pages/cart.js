@@ -10,7 +10,7 @@ async function fetchDiscounts() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // no payload needed, Lambda scans S3
+        body: JSON.stringify({}),
       }
     );
     if (!res.ok) {
@@ -18,7 +18,13 @@ async function fetchDiscounts() {
       return [];
     }
     const data = await res.json();
-    return data.discountedCarts || [];
+    // 🔑 Normalize productId → id for consistency
+    return (data.discountedCarts || []).map((d) => ({
+      id: Number(d.productId),
+      name: d.name,
+      discountApplied: d.discountApplied,
+      finalPrice: d.finalPrice,
+    }));
   } catch (err) {
     console.error("❌ Error fetching discounts:", err);
     return [];
@@ -33,7 +39,7 @@ export default function CartPage() {
     fetchDiscounts().then((dc) => {
       setDiscounts(dc);
 
-      // Show a toast for each discount
+      // Show toast for each discount
       dc.forEach((d) => {
         toast.success(
           `${d.discountApplied} applied to ${d.name}! New price: $${d.finalPrice}`
@@ -42,10 +48,13 @@ export default function CartPage() {
     });
   }, []);
 
-  // Helper to get discounted price if available
+  // Helper to compute price with discounts
   const getFinalPrice = (item) => {
-    const discount = discounts.find((d) => d.productId == item.id);
-    return discount ? discount.finalPrice : item.price * item.quantity;
+    const discount = discounts.find((d) => d.id === item.id);
+    if (discount) {
+      return discount.finalPrice; // already includes quantity
+    }
+    return item.price * item.quantity;
   };
 
   const total = cart.reduce((sum, item) => sum + getFinalPrice(item), 0);
@@ -60,7 +69,7 @@ export default function CartPage() {
         ) : (
           <div className="space-y-6">
             {cart.map((item) => {
-              const discount = discounts.find((d) => d.productId == item.id);
+              const discount = discounts.find((d) => d.id === item.id);
               return (
                 <div
                   key={item.id}
@@ -100,4 +109,5 @@ export default function CartPage() {
     </>
   );
 }
+
 
