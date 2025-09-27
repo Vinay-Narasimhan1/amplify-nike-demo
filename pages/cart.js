@@ -18,12 +18,12 @@ async function fetchDiscounts() {
       return [];
     }
     const data = await res.json();
-    // 🔑 Normalize productId → id for consistency
+    // Normalize → ensure we have id + per-unit discount price
     return (data.discountedCarts || []).map((d) => ({
       id: Number(d.productId),
       name: d.name,
       discountApplied: d.discountApplied,
-      finalPrice: d.finalPrice,
+      finalPrice: Number(d.finalPrice), // ensure number
     }));
   } catch (err) {
     console.error("❌ Error fetching discounts:", err);
@@ -38,11 +38,9 @@ export default function CartPage() {
   useEffect(() => {
     fetchDiscounts().then((dc) => {
       setDiscounts(dc);
-
-      // Show toast for each discount
       dc.forEach((d) => {
         toast.success(
-          `${d.discountApplied} applied to ${d.name}! New price: $${d.finalPrice}`
+          `${d.discountApplied} applied to ${d.name}! New price per unit: $${d.finalPrice}`
         );
       });
     });
@@ -52,7 +50,8 @@ export default function CartPage() {
   const getFinalPrice = (item) => {
     const discount = discounts.find((d) => d.id === item.id);
     if (discount) {
-      return discount.finalPrice; // already includes quantity
+      // finalPrice is per-unit → multiply by qty
+      return discount.finalPrice * item.quantity;
     }
     return item.price * item.quantity;
   };
@@ -109,5 +108,6 @@ export default function CartPage() {
     </>
   );
 }
+
 
 
