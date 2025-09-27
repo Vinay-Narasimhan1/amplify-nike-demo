@@ -10,20 +10,23 @@ async function fetchDiscounts() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({}), // no input needed for now
       }
     );
+
     if (!res.ok) {
       console.error("❌ Failed to fetch discounts:", res.status);
       return [];
     }
+
     const data = await res.json();
-    // Normalize → ensure we have id + per-unit discount price
+
+    // Normalize results: ensure numbers are numbers
     return (data.discountedCarts || []).map((d) => ({
       id: Number(d.productId),
       name: d.name,
-      discountApplied: d.discountApplied,
-      finalPrice: Number(d.finalPrice), // ensure number
+      discountApplied: d.discountApplied || null,
+      finalPrice: d.finalPrice ? Number(d.finalPrice) : null, // might be null if missing
     }));
   } catch (err) {
     console.error("❌ Error fetching discounts:", err);
@@ -39,21 +42,26 @@ export default function CartPage() {
     fetchDiscounts().then((dc) => {
       setDiscounts(dc);
       dc.forEach((d) => {
-        toast.success(
-          `${d.discountApplied} applied to ${d.name}! New price per unit: $${d.finalPrice}`
-        );
+        if (d.discountApplied) {
+          toast.success(
+            `${d.discountApplied} applied to ${d.name}! New price per unit: $${d.finalPrice}`
+          );
+        }
       });
     });
   }, []);
 
-  // Helper to compute price with discounts
+  // Compute final price per item
   const getFinalPrice = (item) => {
     const discount = discounts.find((d) => d.id === item.id);
-    if (discount) {
-      // finalPrice is per-unit → multiply by qty
-      return discount.finalPrice * item.quantity;
+
+    if (discount && discount.finalPrice) {
+      // finalPrice is per unit → multiply by cart quantity
+      return discount.finalPrice * (item.quantity || 1);
     }
-    return item.price * item.quantity;
+
+    // fallback → original cart price × quantity
+    return Number(item.price || 0) * (item.quantity || 1);
   };
 
   const total = cart.reduce((sum, item) => sum + getFinalPrice(item), 0);
@@ -69,6 +77,8 @@ export default function CartPage() {
           <div className="space-y-6">
             {cart.map((item) => {
               const discount = discounts.find((d) => d.id === item.id);
+              const final = getFinalPrice(item);
+
               return (
                 <div
                   key={item.id}
@@ -77,8 +87,8 @@ export default function CartPage() {
                   <div>
                     <h2 className="text-lg font-semibold">{item.name}</h2>
                     <p className="text-gray-500">
-                      Qty: {item.quantity}
-                      {discount && (
+                      Qty: {item.quantity || 1}
+                      {discount?.discountApplied && (
                         <span className="ml-2 text-green-600 font-bold">
                           ({discount.discountApplied})
                         </span>
@@ -87,7 +97,7 @@ export default function CartPage() {
                   </div>
                   <div>
                     <span className="text-xl font-bold">
-                      ${getFinalPrice(item).toFixed(2)}
+                      ${final.toFixed(2)}
                     </span>
                   </div>
                   <button
@@ -108,6 +118,7 @@ export default function CartPage() {
     </>
   );
 }
+
 
 
 
