@@ -63,7 +63,7 @@ export default function CartPage() {
       const last = localStorage.getItem("lastCartActivity");
       if (!last) return;
       const elapsed = Date.now() - parseInt(last, 10);
-      if (elapsed > 2 * 60 * 1000) {
+      if (elapsed > 10 * 1000) {
         fetchAndMergeDiscounts();
       }
     }, 10000);
