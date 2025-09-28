@@ -1,100 +1,97 @@
-import { useEffect, useState } from "react";
+// pages/cart.js
+import { useEffect } from "react";
 import toast from "react-hot-toast";
+import NavBar from "../components/NavBar";
+import { useCart } from "../context/CartContext";
 
-export default function Cart() {
-  const [cart, setCart] = useState([]);
-  const [total, setTotal] = useState(0);
+const ABANDONED_API =
+  "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/abandonedCartRecovery";
 
-  // Load cart from localStorage
-  useEffect(() => {
-    const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCart(storedCart);
+export default function CartPage() {
+  const { cart, setCart, removeFromCart, updateQty } = useCart();
 
-    // Listen for storage changes across tabs
-    const syncCart = (e) => {
-      if (e.key === "cart") {
-        setCart(JSON.parse(e.newValue || "[]"));
-      }
-    };
-    window.addEventListener("storage", syncCart);
-    return () => window.removeEventListener("storage", syncCart);
-  }, []);
-
-  // Save cart + recalc total
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-    if (cart.length > 0) {
-      localStorage.setItem("lastCartActivity", Date.now().toString());
-    }
-
-    const newTotal = cart.reduce((acc, item) => {
-      const price = parseFloat(item.finalPrice || item.price || 0);
-      const qty = parseInt(item.quantity || 1, 10);
-      return acc + price * qty;
-    }, 0);
-
-    setTotal(newTotal);
-  }, [cart]);
-
-  // Remove item
-  const removeItem = (id) => {
-    const updated = cart.filter((item) => item.productId !== id);
-    setCart(updated);
-  };
-
-  // Fetch discounts from Lambda
-  async function fetchDiscounts() {
+  // Merge discounts into current cart (preserve image/qty)
+  async function fetchAndMergeDiscounts() {
     try {
-      const res = await fetch(
-        "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/abandonedCartRecovery"
-      );
-      const data = await res.json();
-      const discounted = data.discountedCarts || [];
+      const res = await fetch(ABANDONED_API);
+      if (!res.ok) return;
 
-      if (discounted.length > 0) {
-        setCart(discounted);
-        const msg = discounted
-          .map((d) => `${d.name}: ${d.discountApplied}`)
-          .join(", ");
-        toast.success(`🎉 Discounts applied! ${msg}`);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching discounts:", err);
+      const data = await res.json();
+      const discounted = Array.isArray(data.discountedCarts)
+        ? data.discountedCarts
+        : [];
+
+      if (discounted.length === 0) return;
+
+      // Map discounts by productId
+      const byId = new Map(
+        discounted.map((d) => [
+          String(d.productId),
+          {
+            discountApplied: d.discountApplied || null,
+            finalPrice: d.finalPrice != null ? Number(d.finalPrice) : null,
+          },
+        ])
+      );
+
+      // Merge into existing cart (do NOT replace)
+      setCart((prev) =>
+        prev.map((item) => {
+          const d = byId.get(String(item.id));
+          if (!d) return item;
+          return {
+            ...item,
+            discountApplied: d.discountApplied,
+            // Use per-unit discounted price; keep original price as fallback
+            finalPrice: d.finalPrice ?? item.finalPrice ?? item.price,
+          };
+        })
+      );
+
+      const msg = discounted
+        .map((d) => `${d.name}: ${d.discountApplied}`)
+        .join(", ");
+      if (msg) toast.success(`🎉 Discounts applied! ${msg}`);
+    } catch (e) {
+      console.error("Discount fetch failed:", e);
     }
   }
 
-  // Check abandoned cart (2 mins → discount)
+  // Abandoned-cart check: run every 10s; fire after 2 minutes idle (testing)
   useEffect(() => {
-    const timer = setInterval(() => {
-      const lastActivity = localStorage.getItem("lastCartActivity");
-      if (lastActivity) {
-        const elapsed = Date.now() - parseInt(lastActivity, 10);
-        if (elapsed > 2 * 60 * 1000) {
-          console.log("⏰ Abandoned cart detected → applying discounts");
-          fetchDiscounts();
-        }
+    const t = setInterval(() => {
+      const last = localStorage.getItem("lastCartActivity");
+      if (!last) return;
+      const elapsed = Date.now() - parseInt(last, 10);
+      if (elapsed > 2 * 60 * 1000) {
+        fetchAndMergeDiscounts();
       }
-    }, 10000); // check every 10s
-    return () => clearInterval(timer);
+    }, 10000);
+    return () => clearInterval(t);
   }, []);
 
+  // Helpers
+  const lineTotal = (item) =>
+    (item.finalPrice != null ? Number(item.finalPrice) : Number(item.price)) *
+    Number(item.quantity);
+
+  const cartTotal = cart.reduce((sum, item) => sum + lineTotal(item), 0);
+
   return (
-    <main className="max-w-4xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
+    <>
+      <NavBar />
 
-      {cart.length === 0 ? (
-        <p className="text-gray-600">No items in cart</p>
-      ) : (
-        <>
-          <div className="space-y-6">
-            {cart.map((item, idx) => {
-              const price = parseFloat(item.finalPrice || item.price || 0);
-              const qty = parseInt(item.quantity || 1, 10);
-              const subtotal = price * qty;
+      <main className="max-w-4xl mx-auto px-6 py-12">
+        <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
 
-              return (
+        {cart.length === 0 ? (
+          <p className="text-gray-600">Your cart is empty.</p>
+        ) : (
+          <>
+            <div className="space-y-6">
+              {cart.map((item) => (
                 <div
-                  key={idx}
+                  key={item.id}
                   className="flex items-center justify-between border-b pb-4"
                 >
                   <div className="flex items-center space-x-4">
@@ -107,36 +104,66 @@ export default function Cart() {
                     )}
                     <div>
                       <h3 className="font-semibold">{item.name}</h3>
-                      <p className="text-gray-600">Qty: {qty}</p>
+                      <p className="text-gray-600">
+                        $
+                        {(
+                          item.finalPrice != null
+                            ? Number(item.finalPrice)
+                            : Number(item.price)
+                        ).toFixed(2)}
+                      </p>
+
+                      {/* qty controls */}
+                      <div className="mt-2 flex items-center space-x-2">
+                        <button
+                          onClick={() => updateQty(item.id, -1)}
+                          className="px-2 py-1 bg-gray-200 rounded"
+                        >
+                          -
+                        </button>
+                        <span>{Number(item.quantity)}</span>
+                        <button
+                          onClick={() => updateQty(item.id, +1)}
+                          className="px-2 py-1 bg-gray-200 rounded"
+                        >
+                          +
+                        </button>
+                      </div>
+
                       {item.discountApplied && (
-                        <p className="text-green-600 text-sm">
+                        <p className="text-green-600 text-sm mt-1">
                           {item.discountApplied}
                         </p>
                       )}
                     </div>
                   </div>
+
                   <div className="text-right">
-                    <p className="font-semibold">${subtotal.toFixed(2)}</p>
+                    <p className="font-semibold">
+                      ${lineTotal(item).toFixed(2)}
+                    </p>
                     <button
                       className="text-red-500 mt-2"
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeFromCart(item.id)}
                     >
                       Remove
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          <div className="mt-8 flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Total: ${total.toFixed(2)}</h2>
-            <button className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800">
-              Checkout
-            </button>
-          </div>
-        </>
-      )}
-    </main>
+            <div className="mt-8 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">
+                Total: ${cartTotal.toFixed(2)}
+              </h2>
+              <button className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800">
+                Checkout
+              </button>
+            </div>
+          </>
+        )}
+      </main>
+    </>
   );
 }
