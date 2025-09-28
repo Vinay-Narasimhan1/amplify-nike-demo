@@ -5,23 +5,25 @@ export default function Cart() {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
 
-  // Load cart on mount
+  // Load cart from localStorage
   useEffect(() => {
     const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(storedCart);
   }, []);
 
-  // Save cart + update total + activity timestamp
+  // Save cart + recalc total
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
     if (cart.length > 0) {
       localStorage.setItem("lastCartActivity", Date.now().toString());
     }
 
-    const newTotal = cart.reduce(
-      (acc, item) => acc + (item.finalPrice || item.price) * item.quantity,
-      0
-    );
+    const newTotal = cart.reduce((acc, item) => {
+      const price = parseFloat(item.finalPrice || item.price || 0);
+      const qty = parseInt(item.quantity || 1, 10);
+      return acc + price * qty;
+    }, 0);
+
     setTotal(newTotal);
   }, [cart]);
 
@@ -31,7 +33,7 @@ export default function Cart() {
     setCart(updated);
   };
 
-  // Fetch discounts from abandonedCartRecovery Lambda
+  // Fetch discounts from Lambda
   async function fetchDiscounts() {
     try {
       const res = await fetch(
@@ -42,26 +44,24 @@ export default function Cart() {
 
       if (discounted.length > 0) {
         setCart(discounted);
-
         const msg = discounted
           .map((d) => `${d.name}: ${d.discountApplied}`)
           .join(", ");
         toast.success(`🎉 Discounts applied! ${msg}`);
       }
     } catch (err) {
-      console.error("❌ Error fetching abandoned cart discounts:", err);
+      console.error("❌ Error fetching discounts:", err);
     }
   }
 
-  // Abandoned cart detection (2 min for testing)
+  // Check abandoned cart (2 mins for testing)
   useEffect(() => {
     const timer = setInterval(() => {
       const lastActivity = localStorage.getItem("lastCartActivity");
       if (lastActivity) {
         const elapsed = Date.now() - parseInt(lastActivity, 10);
-
         if (elapsed > 2 * 60 * 1000) {
-          console.log("⏰ Abandoned cart detected. Fetching discounts...");
+          console.log("⏰ Abandoned cart detected → applying discounts");
           fetchDiscounts();
         }
       }
@@ -76,21 +76,26 @@ export default function Cart() {
         <p>No items in cart</p>
       ) : (
         <>
-          {cart.map((item, idx) => (
-            <div key={idx} style={{ marginBottom: "10px" }}>
-              <h3>{item.name}</h3>
-              <p>
-                Qty: {item.quantity} — $
-                {((item.finalPrice || item.price) * item.quantity).toFixed(2)}
-              </p>
-              {item.discountApplied && (
-                <p style={{ color: "green" }}>
-                  Discount: {item.discountApplied}
+          {cart.map((item, idx) => {
+            const price = parseFloat(item.finalPrice || item.price || 0);
+            const qty = parseInt(item.quantity || 1, 10);
+            const subtotal = price * qty;
+
+            return (
+              <div key={idx} style={{ marginBottom: "10px" }}>
+                <h3>{item.name}</h3>
+                <p>
+                  Qty: {qty} — ${subtotal.toFixed(2)}
                 </p>
-              )}
-              <button onClick={() => removeItem(item.productId)}>Remove</button>
-            </div>
-          ))}
+                {item.discountApplied && (
+                  <p style={{ color: "green" }}>
+                    Discount: {item.discountApplied}
+                  </p>
+                )}
+                <button onClick={() => removeItem(item.productId)}>Remove</button>
+              </div>
+            );
+          })}
           <h2>Total: ${total.toFixed(2)}</h2>
         </>
       )}
