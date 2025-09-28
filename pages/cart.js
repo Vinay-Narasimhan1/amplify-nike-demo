@@ -4,8 +4,8 @@ import toast from "react-hot-toast";
 import NavBar from "../components/NavBar";
 import { useCart } from "../context/CartContext";
 
-const ABANDONED_API =
-  "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/abandonedCartRecovery";
+  const ABANDONED_API =
+  "https://4ndgo62avnxufyihb45mue6fma0qiyfs.lambda-url.us-east-2.on.aws/";
 
 export default function CartPage() {
   const { cart, setCart, removeFromCart, updateQty } = useCart();
