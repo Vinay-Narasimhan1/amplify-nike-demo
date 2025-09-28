@@ -9,6 +9,15 @@ export default function Cart() {
   useEffect(() => {
     const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(storedCart);
+
+    // Listen for storage changes across tabs
+    const syncCart = (e) => {
+      if (e.key === "cart") {
+        setCart(JSON.parse(e.newValue || "[]"));
+      }
+    };
+    window.addEventListener("storage", syncCart);
+    return () => window.removeEventListener("storage", syncCart);
   }, []);
 
   // Save cart + recalc total
@@ -54,7 +63,7 @@ export default function Cart() {
     }
   }
 
-  // Check abandoned cart (2 mins for testing)
+  // Check abandoned cart (2 mins → discount)
   useEffect(() => {
     const timer = setInterval(() => {
       const lastActivity = localStorage.getItem("lastCartActivity");
@@ -70,35 +79,64 @@ export default function Cart() {
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Your Cart</h1>
+    <main className="max-w-4xl mx-auto px-6 py-12">
+      <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
+
       {cart.length === 0 ? (
-        <p>No items in cart</p>
+        <p className="text-gray-600">No items in cart</p>
       ) : (
         <>
-          {cart.map((item, idx) => {
-            const price = parseFloat(item.finalPrice || item.price || 0);
-            const qty = parseInt(item.quantity || 1, 10);
-            const subtotal = price * qty;
+          <div className="space-y-6">
+            {cart.map((item, idx) => {
+              const price = parseFloat(item.finalPrice || item.price || 0);
+              const qty = parseInt(item.quantity || 1, 10);
+              const subtotal = price * qty;
 
-            return (
-              <div key={idx} style={{ marginBottom: "10px" }}>
-                <h3>{item.name}</h3>
-                <p>
-                  Qty: {qty} — ${subtotal.toFixed(2)}
-                </p>
-                {item.discountApplied && (
-                  <p style={{ color: "green" }}>
-                    Discount: {item.discountApplied}
-                  </p>
-                )}
-                <button onClick={() => removeItem(item.productId)}>Remove</button>
-              </div>
-            );
-          })}
-          <h2>Total: ${total.toFixed(2)}</h2>
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b pb-4"
+                >
+                  <div className="flex items-center space-x-4">
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-24 h-24 object-cover rounded"
+                      />
+                    )}
+                    <div>
+                      <h3 className="font-semibold">{item.name}</h3>
+                      <p className="text-gray-600">Qty: {qty}</p>
+                      {item.discountApplied && (
+                        <p className="text-green-600 text-sm">
+                          {item.discountApplied}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">${subtotal.toFixed(2)}</p>
+                    <button
+                      className="text-red-500 mt-2"
+                      onClick={() => removeItem(item.productId)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Total: ${total.toFixed(2)}</h2>
+            <button className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800">
+              Checkout
+            </button>
+          </div>
         </>
       )}
-    </div>
+    </main>
   );
 }
