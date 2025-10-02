@@ -9,7 +9,7 @@ export async function sendChat(message, sessionId = "web-session") {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ message, sessionId }),
-        credentials: "omit" // no cookies, avoids CORS preflight issues
+        credentials: "omit" // avoid CORS + cookies issues
       }
     );
 
@@ -20,3 +20,4 @@ export async function sendChat(message, sessionId = "web-session") {
     return { error: "Network error. Please try again." };
   }
 }
+
