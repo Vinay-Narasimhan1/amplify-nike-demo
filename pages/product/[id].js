@@ -6,22 +6,45 @@ import { useState, useEffect } from "react";
 import NavBar from "../../components/NavBar";
 import Link from "next/link";
 
-// Fetch recommendations (already working)
+// --- API endpoint (API Gateway) ---
+const RECS_URL =
+  "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/getRecommendations";
+
+// Robust recommendations fetcher: tolerates different response shapes
 async function fetchRecommendations(lastViewed) {
   try {
-    const res = await fetch(
-      "https://v8sqbz8rgj.execute-api.us-east-2.amazonaws.com/prod/getRecommendations",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lastViewed }),
-      }
-    );
+    const res = await fetch(RECS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // ensure number is sent; some Lambdas rely on numeric parsing
+      body: JSON.stringify({ lastViewed: Number(lastViewed) }),
+    });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error("Recommendations HTTP error:", res.status);
+      return [];
+    }
+
     const data = await res.json();
-    return data.response?.recommendations || [];
-  } catch {
+
+    // Accept any of these shapes:
+    // { products: [...] }
+    // { recommendations: [...] }
+    // { response: { recommendations: [...] } }
+    // or even a bare array [...]
+    const candidates =
+      data?.products ??
+      data?.recommendations ??
+      data?.response?.recommendations ??
+      data;
+
+    if (Array.isArray(candidates)) return candidates.filter(Boolean);
+    if (Array.isArray(candidates?.items)) return candidates.items.filter(Boolean);
+
+    console.warn("Unexpected recommendations shape:", data);
+    return [];
+  } catch (err) {
+    console.error("fetchRecommendations failed:", err);
     return [];
   }
 }
@@ -44,9 +67,12 @@ export default function ProductPage({ product }) {
   const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
-    if (product?.id) {
-      fetchRecommendations(product.id).then(setRecommendations);
-    }
+    if (!product?.id) return;
+
+    // Fetch recs whenever the product changes
+    fetchRecommendations(product.id).then((recs) => {
+      setRecommendations(Array.isArray(recs) ? recs : []);
+    });
   }, [product?.id]);
 
   if (!product) {
@@ -54,7 +80,7 @@ export default function ProductPage({ product }) {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, qty); // ✅ pass qty
+    addToCart(product, qty);
     toast.success(`${qty} × ${product.name} added to cart!`);
   };
 
@@ -83,6 +109,7 @@ export default function ProductPage({ product }) {
               <button
                 onClick={() => setQty(Math.max(1, qty - 1))}
                 className="px-3 py-2 bg-gray-200 rounded"
+                aria-label="Decrease quantity"
               >
                 -
               </button>
@@ -90,6 +117,7 @@ export default function ProductPage({ product }) {
               <button
                 onClick={() => setQty(qty + 1)}
                 className="px-3 py-2 bg-gray-200 rounded"
+                aria-label="Increase quantity"
               >
                 +
               </button>
@@ -105,26 +133,32 @@ export default function ProductPage({ product }) {
         </div>
 
         {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <section className="mt-16">
-            <h2 className="text-2xl font-bold mb-6">You may also like</h2>
+        <section className="mt-16">
+          <h2 className="text-2xl font-bold mb-6">You may also like</h2>
+
+          {recommendations.length > 0 ? (
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {recommendations.map((rec) => (
                 <Link
-                  key={rec.id}
+                  key={String(rec.id)}
                   href={`/product/${rec.id}`}
-                  className="block border rounded-lg p-4 hover:shadow-lg"
+                  className="block border rounded-lg p-4 hover:shadow-lg transition-shadow"
                 >
                   <h3 className="font-semibold">{rec.name}</h3>
                   <p className="text-sm text-gray-600">{rec.category}</p>
-                  <p className="mt-2 font-bold">${rec.price}</p>
+                  {"price" in rec && (
+                    <p className="mt-2 font-bold">${rec.price}</p>
+                  )}
                 </Link>
               ))}
             </div>
-          </section>
-        )}
+          ) : (
+            <p className="text-gray-500">No recommendations at the moment.</p>
+          )}
+        </section>
       </main>
     </>
   );
 }
+
 
